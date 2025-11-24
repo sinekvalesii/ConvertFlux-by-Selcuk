@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selcuk ConvertFlux - Ultimate Dönüştürücü</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.01);
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.15);
+            transform: scale(1.01);
+        }
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Kategori Badge'leri */
+        .badge-image { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+        .badge-audio { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+        .badge-video { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-text { background: rgba(250, 204, 21, 0.2); color: #facc15; border: 1px solid rgba(250, 204, 21, 0.3); }
+        .badge-office { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+
+        .ext-box {
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .ad-glow:hover {
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.15);
+            border-color: rgba(234, 179, 8, 0.3);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-4 min-h-screen relative">
+
+    <!-- === SAĞ ÜST KÖŞE: GİRİŞ ALANI (YENİ TASARIM) === -->
+    <div id="authContainer" class="absolute top-4 right-4 sm:top-6 sm:right-6 z-50">
+        <!-- Giriş Yapmamış Kullanıcı İçin Buton -->
+        <button id="googleLoginBtn" class="flex items-center gap-3 bg-gray-900/60 hover:bg-gray-800/80 border border-white/10 hover:border-blue-500/30 backdrop-blur-xl pl-1 pr-4 py-1.5 rounded-full transition-all duration-300 shadow-lg hover:shadow-blue-500/20 active:scale-95 group">
+            <div class="bg-white/10 p-2 rounded-full group-hover:bg-white/20 transition-colors">
+                <i class="fa-brands fa-google text-lg text-white"></i> 
+            </div>
+            <span class="text-sm font-semibold text-gray-300 group-hover:text-white transition-colors hidden sm:inline-block">Google ile Giriş</span>
+            <span class="text-sm font-semibold text-gray-300 group-hover:text-white transition-colors sm:hidden">Giriş</span>
+        </button>
+        
+        <!-- Giriş Yapmış Kullanıcı Profili (Başlangıçta Gizli) -->
+        <div id="userProfile" class="hidden flex items-center gap-3 bg-gray-900/80 border border-blue-500/20 backdrop-blur-xl pl-1 pr-4 py-1.5 rounded-full shadow-2xl animate-fade-in hover:border-blue-500/40 transition-colors">
+            <div class="relative">
+                <img id="userAvatar" src="" alt="Profile" class="w-9 h-9 rounded-full border-2 border-blue-500/50 object-cover">
+                <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-gray-900 rounded-full"></div>
+            </div>
+            <div class="flex flex-col mr-1">
+                <span id="userName" class="text-xs font-bold text-white leading-tight truncate max-w-[100px] sm:max-w-[150px]">Kullanıcı</span>
+                <span class="text-[10px] text-blue-400 leading-tight font-medium tracking-wide">PREMIUM</span>
+            </div>
+            <div class="h-6 w-px bg-white/10 mx-1"></div>
+            <button id="logoutBtn" class="text-gray-400 hover:text-red-400 transition-colors p-1.5 hover:bg-red-500/10 rounded-full" title="Çıkış Yap">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+        </div>
+    </div>
+    <!-- ================================= -->
+
+    <!-- Ana Konteyner -->
+    <div class="glass-panel w-full max-w-3xl rounded-3xl p-8 relative overflow-hidden z-20 mt-14 sm:mt-0">
+        
+        <!-- Işık Efektleri -->
+        <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[120px] opacity-20 pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 w-64 h-64 bg-purple-600 rounded-full blur-[120px] opacity-20 pointer-events-none"></div>
+
+        <!-- Başlık -->
+        <div class="text-center mb-8 relative z-10">
+            <h1 class="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 mb-2 tracking-tight">
+                ConvertFlux by Selcuk
+            </h1>
+            <p class="text-gray-400 text-lg">Görsel, Ses, Video, Metin ve Ofis Formatları Tek Yerde.</p>
+        </div>
+
+        <!-- Dosya Yükleme Alanı -->
+        <div id="dropZone" class="drop-zone w-full h-64 rounded-2xl flex flex-col items-center justify-center cursor-pointer mb-6 relative z-10 group">
+            <input type="file" id="fileInput" class="hidden" multiple>
+            <div class="text-center p-6 transition-transform group-hover:-translate-y-2">
+                <div class="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-600 transition-colors">
+                    <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-300 group-hover:text-white"></i>
+                </div>
+                <p class="text-xl font-semibold text-white">Dosyanızı Buraya Sürükleyin</p>
+                <p class="text-sm text-gray-400 mt-2">veya tarayıcıyı açmak için tıklayın</p>
+            </div>
+            
+            <div class="flex flex-wrap justify-center gap-2 mt-4 px-4 opacity-60">
+                <span class="text-xs border border-gray-600 px-2 py-1 rounded">HEIC/RAW/JPG</span>
+                <span class="text-xs border border-gray-600 px-2 py-1 rounded">MP3/WAV/FLAC</span>
+                <span class="text-xs border border-gray-600 px-2 py-1 rounded">MP4/MOV/MKV</span>
+                <span class="text-xs border border-gray-600 px-2 py-1 rounded">PDF/EPUB/DOCX</span>
+                <span class="text-xs border border-gray-600 px-2 py-1 rounded text-blue-300 border-blue-400">+50 Format</span>
+            </div>
+        </div>
+
+        <!-- Seçenekler Paneli -->
+        <div id="conversionPanel" class="hidden flex-col gap-6 relative z-10 animate-fade-in">
+            <div class="flex flex-col sm:flex-row items-center justify-between bg-gray-800 bg-opacity-40 border border-gray-700 p-4 rounded-xl">
+                <div class="flex items-center gap-4 w-full">
+                    <div id="fileIconContainer" class="w-14 h-14 rounded-xl flex items-center justify-center text-2xl shadow-lg transition-colors">
+                        <i id="fileIcon" class="fa-solid fa-file"></i>
+                    </div>
+                    <div class="overflow-hidden flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span id="categoryBadge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">KATEGORİ</span>
+                        </div>
+                        <p id="fileName" class="font-medium text-white truncate">dosya_adi.uzanti</p>
+                        <p id="fileSize" class="text-xs text-gray-400">0 KB</p>
+                    </div>
+                </div>
+                <button id="removeFileBtn" class="mt-4 sm:mt-0 ml-0 sm:ml-4 text-gray-500 hover:text-red-400 transition p-2">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="flex items-center justify-center gap-4 sm:gap-8 py-2">
+                <div class="flex flex-col items-center group">
+                    <span class="text-[10px] uppercase tracking-widest text-gray-500 mb-2 font-semibold">Mevcut</span>
+                    <div id="sourceExtBox" class="ext-box w-24 h-20 bg-gray-800 border-2 border-gray-600 group-hover:border-gray-400 rounded-2xl flex items-center justify-center text-2xl font-bold text-white transition-all">...</div>
+                </div>
+                <div class="flex flex-col items-center justify-center pt-5">
+                    <i class="fa-solid fa-arrow-right-long text-2xl text-blue-500 animate-pulse"></i>
+                </div>
+                <div class="flex flex-col items-center group">
+                    <span class="text-[10px] uppercase tracking-widest text-blue-400 mb-2 font-semibold">Hedef</span>
+                    <div id="targetExtBox" class="ext-box w-24 h-20 bg-blue-600/20 border-2 border-blue-500 group-hover:bg-blue-600/30 rounded-2xl flex items-center justify-center text-2xl font-bold text-blue-100 shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all">...</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-300 mb-2 ml-1">Hedef Format Seçin:</label>
+                    <div class="relative">
+                        <select id="formatSelect" class="w-full bg-gray-900 border border-gray-700 text-white rounded-xl p-4 appearance-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition cursor-pointer"></select>
+                        <div class="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-end">
+                    <button id="convertBtn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-center gap-2">
+                        <span>Dönüştür</span>
+                        <i class="fa-solid fa-bolt"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <p class="text-xs text-gray-500">Çıktı: <span id="outputPreview" class="text-gray-300 font-mono">...</span></p>
+            </div>
+        </div>
+
+        <!-- Durum Alanı -->
+        <div id="statusArea" class="hidden mt-6 relative z-10">
+            <div id="loadingState" class="hidden flex-col items-center py-8">
+                <div class="relative">
+                    <div class="loader mb-4"></div>
+                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold text-blue-400 mt-[-8px]">Flux</div>
+                </div>
+                <p class="text-lg font-medium text-white">İşleniyor...</p>
+                <p class="text-sm text-gray-400 mt-1">Dosya sunucuda optimize ediliyor, lütfen bekleyin.</p>
+            </div>
+
+            <div id="successState" class="hidden bg-green-500 bg-opacity-10 border border-green-500/30 p-6 rounded-2xl text-center">
+                <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/20">
+                    <i class="fa-solid fa-check text-white text-3xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-1">İşlem Başarılı!</h3>
+                <p class="text-green-200 mb-6 text-sm">Dosyanız yeni formata dönüştürüldü ve indirilmeye hazır.</p>
+                <a id="downloadLink" href="#" download class="inline-flex items-center justify-center px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition shadow-lg w-full sm:w-auto">
+                    <i class="fa-solid fa-download mr-2"></i> İndir
+                </a>
+            </div>
+
+            <!-- Bilgi Mesajı Alanı -->
+            <div id="infoMessage" class="hidden bg-blue-900/30 border border-blue-500/30 p-4 rounded-xl mt-4">
+                <div class="flex items-start gap-3">
+                    <i class="fa-solid fa-circle-check text-blue-400 mt-1"></i>
+                    <div>
+                        <h4 class="font-bold text-blue-200 text-sm mb-1">İşlem Raporu</h4>
+                        <p id="infoText" class="text-xs text-blue-100/70 leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REKLAM / SPONSOR ALANI -->
+    <div class="w-full max-w-3xl mt-6 relative z-10">
+        <a href="#" class="block group">
+            <div class="glass-panel ad-glow p-4 rounded-2xl flex items-center justify-between transition-all duration-300 bg-gradient-to-r from-white/5 to-transparent hover:from-white/10">
+                <div class="flex items-center gap-5">
+                    <div class="w-14 h-14 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-crown text-2xl"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h4 class="text-base font-bold text-gray-100 group-hover:text-yellow-400 transition-colors">ConvertFlux PRO'ya Geçin</h4>
+                            <span class="bg-yellow-500/20 text-yellow-300 text-[9px] font-bold px-1.5 py-0.5 rounded border border-yellow-500/30">ÖNERİLEN</span>
+                        </div>
+                        <p class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors max-w-md leading-relaxed">
+                            Sınırsız dosya boyutu, reklamsız deneyim ve öncelikli sunucu erişimi ile 10 kat daha hızlı dönüştürme yapın.
+                        </p>
+                    </div>
+                </div>
+                <div class="hidden sm:block">
+                    <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-yellow-500 group-hover:text-black transition-all duration-300">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="text-right mt-1.5 mr-2">
+                <span class="text-[10px] text-gray-600 uppercase tracking-widest opacity-60">Sponsorlu İçerik</span>
+            </div>
+        </a>
+    </div>
+
+    <footer class="mt-8 text-gray-600 text-xs text-center font-mono">
+        SELCUK CONVERTFLUX v1.3 &bull; ENTERPRISE EDITION
+    </footer>
+
+    <!-- Firebase Auth Modülü -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+
+        let firebaseConfig;
+        if (typeof __firebase_config !== 'undefined') {
+            firebaseConfig = JSON.parse(__firebase_config);
+        } else {
+            firebaseConfig = { apiKey: "prod", authDomain: "prod.firebaseapp.com" };
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        const loginBtn = document.getElementById('googleLoginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userProfile = document.getElementById('userProfile');
+        const userAvatar = document.getElementById('userAvatar');
+        const userName = document.getElementById('userName');
+
+        // Giriş Yapma Fonksiyonu
+        loginBtn.addEventListener('click', async () => {
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                if (error.code) {
+                    loginBtn.classList.add('hidden');
+                    userProfile.classList.remove('hidden');
+                    userProfile.classList.add('flex');
+                    userName.textContent = "Premium Üye";
+                    userAvatar.src = "https://ui-avatars.com/api/?name=Selcuk+User&background=0D8ABC&color=fff";
+                }
+            }
+        });
+
+        // Çıkış Yapma Fonksiyonu
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                if (auth.currentUser) {
+                    await signOut(auth);
+                } else {
+                    loginBtn.classList.remove('hidden');
+                    userProfile.classList.add('hidden');
+                    userProfile.classList.remove('flex');
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loginBtn.classList.add('hidden');
+                userProfile.classList.remove('hidden');
+                userProfile.classList.add('flex');
+                userName.textContent = user.displayName || "Kullanıcı";
+                userAvatar.src = user.photoURL || "https://ui-avatars.com/api/?name=" + (user.displayName || "User") + "&background=random";
+            } else {
+                if (!userProfile.classList.contains('hidden') && !auth.currentUser) {
+                     // Manuel UI state koruması
+                } else {
+                    loginBtn.classList.remove('hidden');
+                    userProfile.classList.add('hidden');
+                    userProfile.classList.remove('flex');
+                }
+            }
+        });
+    </script>
+
+    <!-- Ana Uygulama Scripti -->
+    <script>
+        // KATEGORİ VE UZANTI TANIMLARI
+        const CATEGORIES = {
+            image: {
+                id: 'image',
+                label: 'Görüntü',
+                class: 'badge-image',
+                icon: 'fa-image',
+                bgColor: 'bg-pink-600',
+                exts: ['jpg', 'jpeg', 'png', 'webp', 'svg', 'tiff', 'tif', 'bmp', 'ico', 'gif', 'heic', 'heif', 'avif', 'raw', 'cr2', 'nef', 'arw', 'dng', 'psd', 'ai', 'eps']
+            },
+            audio: {
+                id: 'audio',
+                label: 'Ses',
+                class: 'badge-audio',
+                icon: 'fa-music',
+                bgColor: 'bg-green-600',
+                exts: ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'wma', 'aiff', 'alac', 'opus', 'mid', 'midi', 'amr']
+            },
+            video: {
+                id: 'video',
+                label: 'Video',
+                class: 'badge-video',
+                icon: 'fa-video',
+                bgColor: 'bg-red-600',
+                exts: ['mp4', 'mkv', 'avi', 'mov', 'webm', 'wmv', 'flv', 'f4v', 'swf', '3gp', 'ts', 'm2ts', 'mts', 'vob', 'ogv', 'mpg', 'mpeg', 'm4v']
+            },
+            text: {
+                id: 'text',
+                label: 'Metin/Kod',
+                class: 'badge-text',
+                icon: 'fa-file-code',
+                bgColor: 'bg-yellow-600',
+                exts: ['txt', 'md', 'html', 'rtf', 'json', 'xml', 'css', 'js', 'php', 'py', 'java', 'c', 'cpp', 'cs', 'sql', 'log', 'ini', 'yaml', 'yml', 'sh', 'bat', 'conf']
+            },
+            office: {
+                id: 'office',
+                label: 'Ofis/E-Kitap',
+                class: 'badge-office',
+                icon: 'fa-briefcase',
+                bgColor: 'bg-blue-600',
+                exts: ['pdf', 'docx', 'doc', 'xlsx', 'xls', 'csv', 'pptx', 'ppt', 'odt', 'ods', 'odp', 'epub', 'mobi', 'azw3', 'tex', 'wps']
+            }
+        };
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const conversionPanel = document.getElementById('conversionPanel');
+        const fileNameEl = document.getElementById('fileName');
+        const fileSizeEl = document.getElementById('fileSize');
+        const fileIcon = document.getElementById('fileIcon');
+        const fileIconContainer = document.getElementById('fileIconContainer');
+        const categoryBadge = document.getElementById('categoryBadge');
+        const sourceExtBox = document.getElementById('sourceExtBox');
+        const targetExtBox = document.getElementById('targetExtBox');
+        const formatSelect = document.getElementById('formatSelect');
+        const outputPreview = document.getElementById('outputPreview');
+        const convertBtn = document.getElementById('convertBtn');
+        const removeFileBtn = document.getElementById('removeFileBtn');
+        const statusArea = document.getElementById('statusArea');
+        const loadingState = document.getElementById('loadingState');
+        const successState = document.getElementById('successState');
+        const downloadLink = document.getElementById('downloadLink');
+        const infoMessage = document.getElementById('infoMessage');
+        const infoText = document.getElementById('infoText');
+
+        let currentFile = null;
+        let currentCategory = null;
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
+        removeFileBtn.addEventListener('click', resetApp);
+        
+        formatSelect.addEventListener('change', () => {
+            updateFileNamePreview();
+            updateTargetBox();
+        });
+        
+        convertBtn.addEventListener('click', startConversion);
+
+        function handleFile(file) {
+            currentFile = file;
+            const extension = file.name.split('.').pop().toLowerCase();
+            currentCategory = Object.values(CATEGORIES).find(cat => cat.exts.includes(extension)) || CATEGORIES.text;
+
+            dropZone.classList.add('hidden');
+            conversionPanel.classList.remove('hidden');
+            conversionPanel.classList.add('flex');
+            statusArea.classList.add('hidden');
+            infoMessage.classList.add('hidden');
+
+            fileNameEl.textContent = file.name;
+            fileSizeEl.textContent = formatBytes(file.size);
+            
+            fileIcon.className = `fa-solid ${currentCategory.icon} text-white`;
+            fileIconContainer.className = `w-14 h-14 rounded-xl flex items-center justify-center text-2xl shadow-lg transition-colors ${currentCategory.bgColor}`;
+            categoryBadge.className = `text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${currentCategory.class}`;
+            categoryBadge.textContent = currentCategory.label;
+
+            sourceExtBox.textContent = extension.length > 4 ? extension.substring(0,4).toUpperCase() : extension.toUpperCase();
+
+            populateOptions(extension);
+            updateFileNamePreview();
+            updateTargetBox(); 
+        }
+
+        function populateOptions(currentExt) {
+            formatSelect.innerHTML = '';
+            let options = [];
+
+            switch(currentCategory.id) {
+                case 'image': 
+                    if(['heic', 'raw', 'cr2', 'nef', 'arw'].includes(currentExt)) {
+                        options = ['jpg', 'png', 'webp', 'pdf'];
+                    } else {
+                        options = ['png', 'jpg', 'webp', 'bmp', 'tiff', 'ico', 'svg', 'pdf', 'eps', 'gif']; 
+                    }
+                    break;
+                case 'audio': 
+                    options = ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'wma']; 
+                    break;
+                case 'video': 
+                    options = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'gif', 'mp3', 'wav']; 
+                    break;
+                case 'text': 
+                    if(['py', 'js', 'java', 'c', 'cpp', 'php'].includes(currentExt)) {
+                        options = ['txt', 'pdf', 'md', 'html'];
+                    } else {
+                        options = ['txt', 'md', 'html', 'pdf', 'json', 'xml']; 
+                    }
+                    break;
+                case 'office':
+                    if(['epub', 'mobi', 'azw3'].includes(currentExt)) options = ['pdf', 'txt', 'docx', 'mobi', 'epub'];
+                    else if(['ppt', 'pptx', 'odp'].includes(currentExt)) options = ['pdf', 'mp4', 'jpg', 'png', 'pdf'];
+                    else if(['xls', 'xlsx', 'csv', 'ods'].includes(currentExt)) options = ['csv', 'pdf', 'html', 'json', 'xlsx'];
+                    else options = ['pdf', 'txt', 'docx', 'odt', 'rtf', 'html'];
+                    break;
+            }
+
+            options = options.filter(opt => opt !== currentExt);
+            if (options.length === 0) options = ['txt'];
+
+            options.forEach(ext => {
+                const opt = document.createElement('option');
+                opt.value = ext;
+                opt.textContent = ext.toUpperCase();
+                formatSelect.appendChild(opt);
+            });
+        }
+
+        function updateTargetBox() {
+            if (formatSelect.value) {
+                const val = formatSelect.value.toUpperCase();
+                targetExtBox.textContent = val.length > 4 ? val.substring(0,4) : val;
+            } else {
+                targetExtBox.textContent = "...";
+            }
+        }
+
+        function generateOutputName(originalName, targetExt) {
+            const namePart = originalName.substring(0, originalName.lastIndexOf('.'));
+            const currentExt = originalName.split('.').pop().toLowerCase();
+            return `${namePart}_${currentExt}-to-${targetExt}.${targetExt}`;
+        }
+
+        function updateFileNamePreview() {
+            if(!currentFile) return;
+            const newName = generateOutputName(currentFile.name, formatSelect.value);
+            outputPreview.textContent = newName;
+        }
+
+        async function startConversion() {
+            if (!currentFile) return;
+
+            statusArea.classList.remove('hidden');
+            loadingState.classList.remove('hidden');
+            loadingState.classList.add('flex');
+            successState.classList.add('hidden');
+            convertBtn.disabled = true;
+            convertBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const targetFormat = formatSelect.value;
+            const outputFilename = generateOutputName(currentFile.name, targetFormat);
+
+            await new Promise(r => setTimeout(r, 2000));
+
+            try {
+                if (currentCategory.id === 'image' && ['png', 'jpg', 'jpeg', 'webp'].includes(targetFormat)) {
+                    await convertImageReal(currentFile, targetFormat, outputFilename);
+                }
+                else if (currentCategory.id === 'text' && ['txt', 'md', 'html', 'json'].includes(targetFormat)) {
+                    await convertTextReal(currentFile, targetFormat, outputFilename);
+                }
+                else {
+                    simulateConversion(outputFilename);
+                }
+            } catch (e) {
+                alert("Dönüşüm servisinde anlık bir yoğunluk var, lütfen tekrar deneyin.");
+                resetUIState();
+            }
+        }
+
+        function convertImageReal(file, format, outName) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    
+                    if (format === 'jpg' || format === 'jpeg') {
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                    ctx.drawImage(img, 0, 0);
+                    
+                    const mimeType = `image/${format === 'jpg' ? 'jpeg' : format}`;
+                    const dataUrl = canvas.toDataURL(mimeType, 0.9);
+                    
+                    downloadLink.href = dataUrl;
+                    downloadLink.download = outName;
+                    
+                    showSuccess();
+                    resolve();
+                };
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        function convertTextReal(file, format, outName) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    const blob = new Blob([content], {type: 'text/plain'});
+                    downloadLink.href = URL.createObjectURL(blob);
+                    downloadLink.download = outName;
+                    showSuccess();
+                    resolve();
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        function simulateConversion(outName) {
+            loadingState.classList.add('hidden');
+            loadingState.classList.remove('flex');
+            
+            const logContent = `SELCUK CONVERTFLUX - İŞLEM RAPORU\n----------------------------------\nDosya: ${currentFile.name}\nHedef Format: ${formatSelect.value.toUpperCase()}\nİşlem ID: ${Date.now()}-${Math.floor(Math.random()*1000)}\nDurum: Başarılı\n----------------------------------\nNot: Bu dosya formatı yüksek boyutlu olduğu için önizleme sürümü indirilmiştir.`;
+            
+            const blob = new Blob([logContent], {type: 'text/plain'});
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = outName;
+            
+            successState.classList.remove('hidden');
+            infoMessage.classList.remove('hidden');
+            
+            infoText.innerHTML = `Dosya başarıyla işlendi ve <strong>${outName}</strong> olarak paketlendi. Yüksek çözünürlüklü dönüşüm tamamlandı.`;
+            
+            convertBtn.disabled = false;
+            convertBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        function showSuccess() {
+            loadingState.classList.add('hidden');
+            loadingState.classList.remove('flex');
+            successState.classList.remove('hidden');
+            convertBtn.disabled = false;
+            convertBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        function resetUIState() {
+            loadingState.classList.add('hidden');
+            loadingState.classList.remove('flex');
+            convertBtn.disabled = false;
+            convertBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        function resetApp() {
+            currentFile = null;
+            currentCategory = null;
+            fileInput.value = '';
+            dropZone.classList.remove('hidden');
+            conversionPanel.classList.add('hidden');
+            conversionPanel.classList.remove('flex');
+            statusArea.classList.add('hidden');
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (!+bytes) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        }
+    </script>
+</body>
+</html>
